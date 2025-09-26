@@ -2,7 +2,7 @@ import init, { Game } from './pkg/cursorarena_io.js';
 
 // Multiplayer client (dumb renderer)
 async function initMultiplayerGame(mainContent, mapData) {
-    const socket = new WebSocket('wss://cursorarena.vovaauer.com');
+    const socket = new WebSocket('ws://cursorarena.vovaauer.com:8088');
     let localPlayerId = null;
 
     const canvas = mainContent.querySelector('canvas');
