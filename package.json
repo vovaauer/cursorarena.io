@@ -1,0 +1,11 @@
+{
+    "name": "cursorarena-io-client",
+    "version": "0.1.0",
+    "scripts": {
+      "build": "wasm-pack build --target web",
+      "start": "serve ."
+    },
+    "devDependencies": {
+      "serve": "^14.2.1"
+    }
+}

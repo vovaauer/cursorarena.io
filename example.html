@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game UI Concept V2</title>
+<style>
+    :root {
+        --primary-bg: #121212;
+        --secondary-bg: #1a1a1a;
+        --tertiary-bg: #2a2a2a;
+        --border-color: #333;
+        --text-primary: #ffffff;
+        --text-secondary: #888;
+        --accent-color: #4CAF50;
+        --accent-hover: #45a049;
+        --danger-color: #f44336;
+        --locked-overlay: rgba(0, 0, 0, 0.7);
+    }
+
+    body, html {
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--primary-bg);
+        color: var(--text-primary);
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .container {
+        display: flex;
+        height: 100%;
+    }
+
+    .sidebar {
+        width: 250px;
+        background-color: var(--secondary-bg);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border-color);
+    }
+
+    .profile {
+        display: flex;
+        align-items: center;
+        margin-bottom: 30px;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 8px;
+        transition: background-color 0.3s;
+    }
+    .profile:hover {
+        background-color: var(--tertiary-bg);
+    }
+
+    .profile-icon {
+        width: 50px;
+        height: 50px;
+        background-color: var(--tertiary-bg);
+        border-radius: 50%;
+        margin-right: 15px;
+        border: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+
+    .profile-info .username {
+        font-weight: bold;
+    }
+
+    .profile-info .level {
+        font-size: 0.9em;
+        color: var(--text-secondary);
+    }
+    
+    .profile-equipped {
+        font-size: 0.8em;
+        color: var(--accent-color);
+        margin-top: 4px;
+    }
+
+    .nav-menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 15px; /* Evenly space the items */
+    }
+    
+    .sidebar-bottom {
+        margin-top: auto;
+    }
+
+    .nav-item {
+    }
+
+    .nav-link {
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 1.25em; /* Bigger font size */
+        display: block;
+        padding: 15px 20px; /* Bigger padding */
+        position: relative;
+        transition: background-color 0.3s;
+        border-radius: 8px;
+    }
+
+    .nav-link::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 0;
+        background-color: var(--text-primary);
+        transition: height 0.3s;
+        border-radius: 0 4px 4px 0;
+    }
+
+    .nav-link:hover::before, .nav-link.active::before {
+        height: 70%;
+    }
+    
+    .nav-link:hover, .nav-link.active {
+        background-color: var(--tertiary-bg);
+    }
+
+    .main-content {
+        flex-grow: 1;
+        padding: 40px;
+        overflow-y: auto;
+    }
+
+    .content-section { display: none; }
+    .content-section.active { display: block; }
+    h1 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
+
+    /* --- Component Styles --- */
+    input[type="text"], input[type="password"], input[type="number"], select {
+        background-color: var(--tertiary-bg);
+        border: 1px solid var(--border-color);
+        color: #fff;
+        padding: 12px;
+        border-radius: 5px;
+        width: 100%;
+        margin-bottom: 15px;
+        box-sizing: border-box;
+        font-size: 1em;
+    }
+    button {
+        background-color: var(--accent-color);
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1em;
+        font-weight: bold;
+        transition: background-color 0.3s;
+    }
+    button:hover { background-color: var(--accent-hover); }
+    button.button-secondary { background-color: #555; }
+    button.button-secondary:hover { background-color: #666; }
+    button.button-danger { background-color: var(--danger-color); }
+    button.button-danger:hover { background-color: #da190b; }
+    .icon-button { background: none; border: none; font-size: 24px; color: var(--text-primary); cursor: pointer; padding: 5px;}
+
+    /* --- Profile/Customization Tabs --- */
+    .tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 25px;
+    }
+    .tab-link {
+        padding: 15px 25px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: var(--text-secondary);
+        font-size: 1.1em;
+        border-bottom: 3px solid transparent;
+    }
+    .tab-link.active {
+        color: var(--text-primary);
+        border-bottom: 3px solid var(--accent-color);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .customization-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 20px;
+    }
+    .custom-item {
+        background-color: var(--tertiary-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .custom-item-preview {
+        height: 80px;
+        background-color: #444;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+    }
+    .custom-item.locked .custom-item-preview {
+        filter: grayscale(1);
+    }
+    .locked-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--locked-overlay);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+    }
+    .locked-overlay span { font-size: 0.6em; margin-top: 5px; }
+
+    /* --- Create Game & Lobby --- */
+    #create-game-settings, #in-lobby-view { display: block; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .lobby-container { display: flex; gap: 30px; height: 60vh;}
+    .lobby-main { flex: 3; display: flex; flex-direction: column; }
+    .lobby-sidebar { flex: 1; background-color: var(--secondary-bg); padding: 20px; border-radius: 8px; }
+    .chat-box { flex-grow: 1; background-color: var(--tertiary-bg); margin-bottom: 15px; padding: 10px; border-radius: 5px; overflow-y: auto; }
+    .player-list ul { list-style: none; padding: 0; }
+    .player-list li { padding: 5px 0; border-bottom: 1px solid var(--border-color); }
+    .player-list .host-tag { color: var(--accent-color); font-size: 0.8em; margin-left: 5px;}
+
+    /* --- Lua Editor Controls --- */
+    .editor-controls { background-color: var(--tertiary-bg); padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center;}
+    .lua-editor-container { display: flex; gap: 20px; height: 400px; }
+    .lua-editor { flex: 1; background-color: #0d0d0d; color: #f8f8f2; font-family: 'Courier New', Courier, monospace; padding: 15px; border-radius: 5px; resize: none; }
+    .map-live-preview { flex: 1; background-color: var(--tertiary-bg); border-radius: 5px; display: flex; align-items: center; justify-content: center; }
+
+    /* --- Social Tab --- */
+    .friend-list ul { list-style: none; padding: 0; }
+    .friend-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background-color: var(--tertiary-bg); border-radius: 8px; margin-bottom: 10px; }
+    .friend-info { display: flex; align-items: center; gap: 15px; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .status-online { background-color: #2ecc71; }
+    .status-offline { background-color: #95a5a6; }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sidebar">
+        <div class="profile" onclick="showSection('profile')">
+            <div class="profile-icon">🎮</div>
+            <div class="profile-info">
+                <div class="username">Player123</div>
+                <div class="level">Lv. 3</div>
+                <div class="profile-equipped">Sparkle Trail Equipped</div>
+            </div>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="#" class="nav-link" onclick="showSection('quick-play')">Quick Play</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="showSection('create-game')">Create Lobby</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="showSection('join-game')">Join Lobby</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" onclick="showSection('social')">Social</a></li>
+        </ul>
+        <ul class="nav-menu sidebar-bottom">
+            <li class="nav-item"><a href="#" class="nav-link" onclick="showSection('settings')">Settings</a></li>
+        </ul>
+    </div>
+    <div class="main-content">
+        <!-- Home -->
+        <div id="home" class="content-section active">
+            <h1>Game or WTV going on</h1>
+            <p>Welcome! Select an option from the left to get started.</p>
+        </div>
+
+        <!-- Profile Customization -->
+        <div id="profile" class="content-section">
+            <h1>Customization</h1>
+            <div class="tabs">
+                <button class="tab-link active" onclick="openTab(event, 'Cursors')">Cursors</button>
+                <button class="tab-link" onclick="openTab(event, 'CursorEffects')">Cursor Effects</button>
+                <button class="tab-link" onclick="openTab(event, 'NameEffects')">Name Effects</button>
+            </div>
+
+            <div id="Cursors" class="tab-content active">
+                <div class="customization-grid">
+                    <div class="custom-item"><div class="custom-item-preview">🖱️</div><span>Default</span></div>
+                    <div class="custom-item"><div class="custom-item-preview">⚔️</div><span>Sword</span></div>
+                    <div class="custom-item locked"><div class="custom-item-preview">🔥</div><span>Flame</span><div class="locked-overlay">🔒<span>LVL 10</span></div></div>
+                    <div class="custom-item locked"><div class="custom-item-preview">❄️</div><span>Ice</span><div class="locked-overlay">🔒<span>Buy</span></div></div>
+                </div>
+            </div>
+            <div id="CursorEffects" class="tab-content">
+                <div class="customization-grid">
+                    <div class="custom-item"><div class="custom-item-preview">✨</div><span>Sparkle Trail</span></div>
+                    <div class="custom-item"><div class="custom-item-preview">💨</div><span>Smoke</span></div>
+                    <div class="custom-item locked"><div class="custom-item-preview">🌈</div><span>Rainbow</span><div class="locked-overlay">🔒<span>Buy</span></div></div>
+                </div>
+            </div>
+            <div id="NameEffects" class="tab-content">
+                <div class="customization-grid">
+                    <div class="custom-item"><div class="custom-item-preview" style="font-size: 18px; font-weight: bold;">Player</div><span>None</span></div>
+                    <div class="custom-item"><div class="custom-item-preview" style="font-size: 18px; font-weight: bold; text-shadow: 0 0 5px #ff0;">Player</div><span>Glow</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Play -->
+        <div id="quick-play" class="content-section">
+            <h1>Quick Play</h1>
+            <p>Finding a game for you...</p>
+        </div>
+
+        <!-- Create Game -->
+        <div id="create-game" class="content-section">
+            <div id="create-lobby-settings">
+                 <h1>Create Lobby</h1>
+                 <div class="form-grid">
+                     <div><label>Lobby Name</label><input type="text" value="Player123's Game"></div>
+                     <div><label>Player Count</label><input type="number" value="8" min="2" max="16"></div>
+                 </div>
+                 <div><label>Lobby Type</label><select><option>Public</option><option>Private</option></select></div>
+                 <div><label>Search for Map</label><input type="text" placeholder="e.g., Desert Arena"></div>
+                 <button onclick="enterLobbyView()">Create Lobby</button>
+                 <button class="button-secondary" onclick="showLuaEditor()" style="margin-left: 10px;">Open Map Editor</button>
+            </div>
+
+            <div id="in-lobby-view" style="display:none;">
+                <h1>Lobby: Player123's Game</h1>
+                <div class="lobby-container">
+                    <div class="lobby-main">
+                        <div class="chat-box">
+                            <div><strong>Admin:</strong> Welcome to the lobby!</div>
+                        </div>
+                        <div style="display: flex;"><input type="text" placeholder="Type a message..." style="flex-grow: 1; margin:0;"><button style="margin-left:10px; border-radius: 0 5px 5px 0;">Send</button></div>
+                    </div>
+                    <div class="lobby-sidebar">
+                        <h3>Players (1/8)</h3>
+                        <div class="player-list">
+                            <ul>
+                                <li>Player123 <span class="host-tag">Host</span></li>
+                            </ul>
+                        </div>
+                        <hr style="border-color: var(--border-color);">
+                        <h3>Map</h3>
+                        <p>Desert Arena</p>
+                        <button class="button-secondary" style="width: 100%; margin-bottom: 10px;">Change Map</button>
+                        <hr style="border-color: var(--border-color);">
+                        <button style="width: 100%; margin-bottom: 10px;">Start Game</button>
+                        <button class="button-danger" style="width: 100%;" onclick="leaveLobbyView()">Leave Lobby</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="lua-editor-view" style="display:none;">
+                <h1>Map Editor</h1>
+                <div class="editor-controls">
+                    <span>Preview Controls:</span>
+                    <button class="icon-button">▶️</button> <!-- Start -->
+                    <button class="icon-button">⏹️</button> <!-- Stop -->
+                    <button class="icon-button">⏸️</button> <!-- Pause -->
+                    <button class="icon-button">🔄</button> <!-- Restart -->
+                </div>
+                <div class="lua-editor-container">
+                    <textarea class="lua-editor">-- Your Lua script here</textarea>
+                    <div class="map-live-preview"><span>Live Map Preview</span></div>
+                </div>
+                <div style="margin-top:20px;">
+                    <button>Save Map</button>
+                    <button class="button-secondary" onclick="hideLuaEditor()">Back to Lobby Creator</button>
+                </div>
+             </div>
+        </div>
+
+        <!-- Join Game -->
+        <div id="join-game" class="content-section"><h1>Join Game</h1> <!-- Placeholder --></div>
+        
+        <!-- Social -->
+        <div id="social" class="content-section">
+            <h1>Social</h1>
+            <input type="text" placeholder="Search friends...">
+            <div class="friend-list">
+                <ul>
+                    <li class="friend-item">
+                        <div class="friend-info">
+                           <span class="status-dot status-online"></span>
+                           <span>Friend_A</span>
+                        </div>
+                        <div class="friend-actions">
+                            <button class="button-secondary">Message</button>
+                            <button>Join Game</button>
+                        </div>
+                    </li>
+                    <li class="friend-item">
+                        <div class="friend-info">
+                           <span class="status-dot status-offline"></span>
+                           <span>Friend_B</span>
+                        </div>
+                         <div class="friend-actions">
+                            <button class="button-secondary">Message</button>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div id="settings" class="content-section"><h1>Settings</h1> <!-- Placeholder --></div>
+    </div>
+</div>
+
+<script>
+    function showSection(sectionId) {
+        // Handle nav link active state
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        const activeLink = document.querySelector(`.nav-link[onclick="showSection('${sectionId}')"]`);
+        if (activeLink) activeLink.classList.add('active');
+
+        // Show the correct content section
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.toggle('active', section.id === sectionId);
+        });
+        
+        // Reset create game view to default when navigating to it
+        if (sectionId === 'create-game') {
+             leaveLobbyView();
+             hideLuaEditor();
+        }
+    }
+
+    function openTab(evt, tabName) {
+        // Tab switching logic for customization
+        const tabcontent = document.querySelectorAll("#profile .tab-content");
+        tabcontent.forEach(tc => tc.style.display = "none");
+        
+        const tablinks = document.querySelectorAll("#profile .tab-link");
+        tablinks.forEach(tl => tl.classList.remove("active"));
+        
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.classList.add("active");
+    }
+
+    // --- Create Game Flow Logic ---
+    function showLuaEditor() {
+        document.getElementById('create-lobby-settings').style.display = 'none';
+        document.getElementById('lua-editor-view').style.display = 'block';
+    }
+    
+    function hideLuaEditor() {
+        document.getElementById('create-lobby-settings').style.display = 'block';
+        document.getElementById('lua-editor-view').style.display = 'none';
+    }
+
+    function enterLobbyView() {
+        document.getElementById('create-lobby-settings').style.display = 'none';
+        document.getElementById('in-lobby-view').style.display = 'block';
+    }
+
+    function leaveLobbyView() {
+        document.getElementById('create-lobby-settings').style.display = 'block';
+        document.getElementById('in-lobby-view').style.display = 'none';
+    }
+    
+    // Set initial state on load
+    document.addEventListener('DOMContentLoaded', () => {
+        showSection('home');
+        document.querySelector('.tab-link.active').click();
+    });
+</script>
+
+</body>
+</html>

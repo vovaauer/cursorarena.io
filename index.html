@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cursorarena.io</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+<style>
+    :root {
+        --primary-bg: #121212;
+        --secondary-bg: #1a1a1a;
+        --tertiary-bg: #2a2a2a;
+        --border-color: #333;
+        --text-primary: #ffffff;
+        --text-secondary: #888;
+        --accent-color: #4CAF50;
+        --accent-hover: #45a049;
+    }
+
+    body, html {
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--primary-bg);
+        color: var(--text-primary);
+        height: 100%;
+        overflow: hidden;
+    }
+
+    #main-container {
+        display: flex;
+        height: 100%;
+    }
+
+    .sidebar {
+        width: 200px;
+        min-width: 150px;
+        max-width: 500px;
+        background-color: var(--secondary-bg);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        z-index: 2;
+    }
+
+    #resizer {
+        width: 5px;
+        cursor: col-resize;
+        background-color: var(--border-color);
+        z-index: 1;
+    }
+
+    .profile {
+        display: flex;
+        align-items: center;
+        margin-bottom: 30px;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 8px;
+        transition: background-color 0.3s;
+    }
+    .profile:hover {
+        background-color: var(--tertiary-bg);
+    }
+
+    .profile-icon {
+        width: 50px;
+        height: 50px;
+        background-color: var(--tertiary-bg);
+        border-radius: 50%;
+        margin-right: 15px;
+        border: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+
+    .profile-info .username {
+        font-weight: bold;
+    }
+
+    .profile-info .level {
+        font-size: 0.9em;
+        color: var(--text-secondary);
+    }
+
+    .nav-menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .sidebar-bottom {
+        margin-top: auto;
+    }
+
+    .nav-link {
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 1.25em;
+        display: block;
+        padding: 15px 20px;
+        position: relative;
+        transition: background-color 0.3s;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .nav-link::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 0;
+        background-color: var(--text-primary);
+        transition: height 0.3s;
+        border-radius: 0 4px 4px 0;
+    }
+
+    .nav-link:hover::before, .nav-link.active::before {
+        height: 70%;
+    }
+    
+    .nav-link:hover, .nav-link.active {
+        background-color: var(--tertiary-bg);
+    }
+
+    .main-content {
+        flex-grow: 1;
+        position: relative;
+    }
+
+    #menu-content-container {
+        background-color: rgba(0,0,0,0.5);
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .content-section { display: none; padding: 40px; }
+    .content-section.active { display: block; }
+    h1 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
+
+    #game-canvas {
+        display: none;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    #map-editor {
+        height: 100%;
+        padding: 0;
+    }
+
+    #map-editor.active {
+        display: flex;
+    }
+
+    #lua-editor-container {
+        width: 50%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .CodeMirror {
+        flex-grow: 1;
+        height: auto;
+    }
+
+    #map-preview-container {
+        width: 50%;
+        height: 100%;
+        position: relative;
+    }
+
+    #map-preview-canvas {
+        width: 100%;
+        height: 100%;
+    }
+
+    #preview-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 10px;
+    }
+
+</style>
+</head>
+<body>
+
+<div id="main-container">
+    <div class="sidebar">
+        <div class="profile" data-section="profile">
+            <div class="profile-icon">🎮</div>
+            <div class="profile-info">
+                <div class="username">Player123</div>
+                <div class="level">Lv. 1</div>
+            </div>
+        </div>
+        <ul class="nav-menu">
+            <li><a id="quick-play-btn" class="nav-link">Quick Play</a></li>
+            <li><a class="nav-link" data-section="create-game">Create Lobby</a></li>
+            <li><a class="nav-link" data-section="join-game">Join Lobby</a></li>
+            <li><a class="nav-link" data-section="map-browser">Map Editor</a></li>
+            <li><a class="nav-link" data-section="social">Social</a></li>
+        </ul>
+        <ul class="nav-menu sidebar-bottom">
+            <li><a class="nav-link" data-section="settings">Settings</a></li>
+        </ul>
+    </div>
+    <div id="resizer"></div>
+    <div class="main-content">
+        <canvas id="game-canvas"></canvas>
+        <div id="menu-content-container">
+            <div id="home" class="content-section active">
+                <!-- Background footage of random player's games will go here later -->
+            </div>
+
+            <div id="profile" class="content-section">
+                <h1>Customization</h1>
+            </div>
+            
+            <div id="create-game" class="content-section">
+                 <h1>Create Lobby</h1>
+            </div>
+
+            <div id="join-game" class="content-section"><h1>Join Game</h1></div>
+
+            <div id="map-browser" class="content-section">
+                <h1>Map Browser</h1>
+                <button id="create-new-map-btn">Create New Map</button>
+                <!-- Placeholder for map list -->
+            </div>
+
+            <div id="map-editor" class="content-section">
+                <div id="lua-editor-container">
+                    <textarea id="lua-editor"></textarea>
+                </div>
+                <div id="map-preview-container">
+                    <canvas id="map-preview-canvas"></canvas>
+                    <div id="preview-controls">
+                        <button id="play-btn">Play</button>
+                        <button id="pause-btn">Pause</button>
+                        <button id="restart-btn">Restart</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="social" class="content-section">
+                <h1>Social</h1>
+            </div>
+
+            <div id="settings" class="content-section"><h1>Settings</h1></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/lua/lua.min.js"></script>
+<script src="./fengari-web.js"></script>
+
+<script type="module">
+    import { initMultiplayerGame, initLocalGame } from './bootstrap.js';
+
+    const quickPlayBtn = document.getElementById('quick-play-btn');
+    const resizer = document.getElementById('resizer');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const gameCanvas = document.getElementById('game-canvas');
+    const menuContentContainer = document.getElementById('menu-content-container');
+
+    quickPlayBtn.addEventListener('click', async () => {
+        menuContentContainer.style.display = 'none';
+        gameCanvas.style.display = 'block';
+        await initMultiplayerGame(mainContent, null);
+    });
+
+    function showSection(sectionId) {
+        menuContentContainer.style.display = 'block';
+        gameCanvas.style.display = 'none';
+
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        const activeSection = document.getElementById(sectionId);
+        if (activeSection) {
+            activeSection.classList.add('active');
+        }
+
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        const activeLink = document.querySelector(`.nav-link[onclick="showSection('${sectionId}')"]`);
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+
+        if (sectionId === 'map-editor') {
+            initializeMapEditor();
+        }
+    }
+
+    document.querySelectorAll('[data-section]').forEach(element => {
+        element.addEventListener('click', () => {
+            showSection(element.dataset.section);
+        });
+    });
+
+    document.getElementById('create-new-map-btn').addEventListener('click', () => {
+        showSection('map-editor');
+    });
+
+    showSection('home');
+
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+        });
+    });
+
+    function handleMouseMove(e) {
+        if (!isResizing) return;
+        const newWidth = e.clientX - sidebar.getBoundingClientRect().left;
+        sidebar.style.width = `${newWidth}px`;
+    }
+
+    import { runLuaScript, defaultScript } from './lua_api.js';
+
+    let editor;
+    function initializeMapEditor() {
+        if (!editor) {
+            editor = CodeMirror.fromTextArea(document.getElementById('lua-editor'), {
+                mode: 'lua',
+                lineNumbers: true,
+                theme: 'default' // I'll need to add a dark theme for codemirror
+            });
+            editor.setValue(defaultScript);
+
+            const previewContainer = document.getElementById('map-preview-container');
+            let game;
+
+            editor.on('change', async () => {
+                const mapData = runLuaScript(editor.getValue());
+                game = await initLocalGame(previewContainer, mapData);
+            });
+
+            document.getElementById('play-btn').addEventListener('click', async () => {
+                const mapData = runLuaScript(editor.getValue());
+                game = await initLocalGame(previewContainer, mapData);
+            });
+
+            document.getElementById('pause-btn').addEventListener('click', () => {
+                if (game) {
+                    game.pause();
+                }
+            });
+
+            document.getElementById('restart-btn').addEventListener('click', () => {
+                if (game) {
+                    game.restart();
+                }
+            });
+        }
+    }
+
+</script>
+
+</body>
+</html>

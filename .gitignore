@@ -1,0 +1,15 @@
+# Rust build artifacts
+/target
+/server/target
+
+# Wasm build artifacts
+/pkg
+
+# Node dependencies
+/node_modules
+
+# Log files
+*.log
+
+# OS generated files
+.DS_Store
