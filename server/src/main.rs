@@ -1,9 +1,17 @@
+use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use log::{info, warn};
+use native_tls::{Identity, TlsAcceptor};
 use std::{
     collections::HashMap,
+    env,
+    fs::File,
+    io::Read,
     net::SocketAddr,
-    sync::{Arc, atomic::{AtomicU32, Ordering}},
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc,
+    },
     time::Duration,
 };
 use tokio::{
@@ -11,6 +19,7 @@ use tokio::{
     sync::Mutex,
     time::interval,
 };
+use tokio_native_tls::TlsStream;
 use tokio_tungstenite::{
     accept_async,
     tungstenite::protocol::Message,
@@ -18,8 +27,10 @@ use tokio_tungstenite::{
 };
 use game_logic::{Game, PlayerInput, PlayerId, GameState};
 use serde::Serialize;
+use tokio_native_tls::TlsAcceptor as TokioTlsAcceptor;
 
-type PeerMap = Arc<Mutex<HashMap<SocketAddr, futures_util::stream::SplitSink<WebSocketStream<TcpStream>, Message>>>>;
+
+type PeerMap = Arc<Mutex<HashMap<SocketAddr, futures_util::stream::SplitSink<WebSocketStream<TlsStream<TcpStream>>, Message>>>>;
 type InputQueue = Arc<Mutex<Vec<(PlayerId, PlayerInput)>>>;
 
 #[derive(Serialize)]
@@ -31,11 +42,23 @@ enum ServerMessage<'a> {
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     env_logger::init();
 
     let addr = "0.0.0.0:8088";
+    let cert_path = env::var("CERT_PATH").expect("CERT_PATH must be set");
+    let cert_pass = env::var("CERT_PASS").expect("CERT_PASS must be set");
+
+    let mut cert_file = File::open(&cert_path).expect("cannot open certificate");
+    let mut cert_buf = Vec::new();
+    cert_file.read_to_end(&mut cert_buf).expect("cannot read certificate");
+    let identity = Identity::from_pkcs12(&cert_buf, &cert_pass).expect("cannot create identity");
+    let tls_acceptor = Arc::new(TokioTlsAcceptor::from(
+        TlsAcceptor::builder(identity).build().expect("cannot create acceptor"),
+    ));
+
     let listener = TcpListener::bind(&addr).await.expect("Failed to bind");
-    info!("Listening on: {}", addr);
+    info!("Listening on: wss://{}", addr);
 
     let peer_map = PeerMap::new(Mutex::new(HashMap::new()));
     let game = Arc::new(Mutex::new(Game::new(None)));
@@ -47,7 +70,8 @@ async fn main() {
 
     while let Ok((stream, addr)) = listener.accept().await {
         let player_id = player_id_counter.fetch_add(1, Ordering::SeqCst);
-        tokio::spawn(handle_connection(peer_map.clone(), game.clone(), input_queue.clone(), stream, addr, player_id));
+        let acceptor = tls_acceptor.clone();
+        tokio::spawn(handle_connection(acceptor, peer_map.clone(), game.clone(), input_queue.clone(), stream, addr, player_id));
     }
 }
 
@@ -78,10 +102,26 @@ async fn game_loop(peer_map: PeerMap, game: Arc<Mutex<Game>>, input_queue: Input
     }
 }
 
-async fn handle_connection(peer_map: PeerMap, game: Arc<Mutex<Game>>, input_queue: InputQueue, raw_stream: TcpStream, addr: SocketAddr, player_id: PlayerId) {
+async fn handle_connection(
+    tls_acceptor: Arc<TokioTlsAcceptor>,
+    peer_map: PeerMap,
+    game: Arc<Mutex<Game>>,
+    input_queue: InputQueue,
+    raw_stream: TcpStream,
+    addr: SocketAddr,
+    player_id: PlayerId,
+) {
     info!("Incoming TCP connection from: {} with player_id: {}", addr, player_id);
 
-    let ws_stream = match accept_async(raw_stream).await {
+    let tls_stream = match tls_acceptor.accept(raw_stream).await {
+        Ok(s) => s,
+        Err(e) => {
+            warn!("Failed to perform TLS handshake with {}: {}", addr, e);
+            return;
+        }
+    };
+
+    let ws_stream = match accept_async(tls_stream).await {
         Ok(ws) => ws,
         Err(e) => {
             warn!("Failed to accept websocket connection from {}: {}", addr, e);

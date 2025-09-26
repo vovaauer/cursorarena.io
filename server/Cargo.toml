@@ -13,4 +13,7 @@ serde_json = "1.0"
 log = "0.4"
 env_logger = "0.11.3"
 game_logic = { path = "../game_logic" }
+native-tls = "0.2"
+tokio-native-tls = "0.3"
+dotenv = "0.15"
 
