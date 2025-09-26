@@ -33,7 +33,7 @@ enum ServerMessage<'a> {
 async fn main() {
     env_logger::init();
 
-    let addr = "127.0.0.1:8080";
+    let addr = "127.0.0.1:8081";
     let listener = TcpListener::bind(&addr).await.expect("Failed to bind");
     info!("Listening on: {}", addr);
 
