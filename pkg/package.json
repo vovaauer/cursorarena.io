@@ -1,0 +1,16 @@
+{
+  "name": "cursorarena-io",
+  "type": "module",
+  "description": "WASM wrapper for cursorarena.io game logic",
+  "version": "0.1.0",
+  "files": [
+    "cursorarena_io_bg.wasm",
+    "cursorarena_io.js",
+    "cursorarena_io.d.ts"
+  ],
+  "main": "cursorarena_io.js",
+  "types": "cursorarena_io.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
