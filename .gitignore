@@ -3,7 +3,6 @@
 /server/target
 
 # Wasm build artifacts
-/pkg
 
 # Node dependencies
 /node_modules
